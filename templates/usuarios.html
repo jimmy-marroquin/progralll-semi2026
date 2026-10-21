@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Usuarios</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f9f9f9; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h2, h3 { color: #333; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-weight: bold; font-size: 14px; }
+        input { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #218838; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 14px; }
+        th { background-color: #f2f2f2; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-warning:hover { background: #e0a800; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; }
+        .logout-btn { background: #6c757d; text-decoration: none; color: white; padding: 6px 12px; border-radius: 4px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-bar">
+            <h2>Panel de Usuarios (USSS092825)</h2>
+            <a href="/logout" class="logout-btn">Cerrar Sesión</a>
+        </div>
+        <hr>
+
+        <h3>Formulario de Registro / Edición</h3>
+        <input type="hidden" id="idUsuario">
+        <div class="form-group">
+            <label>Usuario:</label>
+            <input type="text" id="usuario">
+        </div>
+        <div class="form-group">
+            <label>Clave:</label>
+            <input type="password" id="clave">
+        </div>
+        <div class="form-group">
+            <label>Nombre:</label>
+            <input type="text" id="nombre">
+        </div>
+        <div class="form-group">
+            <label>Dirección:</label>
+            <input type="text" id="direccion">
+        </div>
+        <div class="form-group">
+            <label>Teléfono:</label>
+            <input type="text" id="telefono">
+        </div>
+        <button onclick="guardarUsuario()">Guardar Usuario</button>
+        <button onclick="limpiarFormulario()" style="background: #6c757d;">Limpiar</button>
+
+        <h3 style="margin-top: 30px;">Lista y Búsqueda de Usuarios</h3>
+        <input type="text" id="busqueda" placeholder="Buscar por nombre o usuario..." onkeyup="buscarUsuarios()">
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Usuario</th>
+                    <th>Nombre</th>
+                    <th>Dirección</th>
+                    <th>Teléfono</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tablaUsuarios">
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            buscarUsuarios();
+        });
+
+        function guardarUsuario() {
+            const idUsuario = document.getElementById('idUsuario').value;
+            const usuario = document.getElementById('usuario').value;
+            const clave = document.getElementById('clave').value;
+            const nombre = document.getElementById('nombre').value;
+            const direccion = document.getElementById('direccion').value;
+            const telefono = document.getElementById('telefono').value;
+
+            const accion = idUsuario ? 'editar' : 'registrar';
+
+            fetch('/crud_usuarios_usss092825', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idUsuario, usuario, clave, nombre, direccion, telefono, accion })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message);
+                limpiarFormulario();
+                buscarUsuarios();
+            });
+        }
+
+        function buscarUsuarios() {
+            const termino = document.getElementById('busqueda').value;
+            fetch(`/buscar_usuarios?q=${termino}`)
+            .then(res => res.json())
+            .then(data => {
+                let html = '';
+                data.forEach(u => {
+                    html += `<tr>
+                        <td>${u.idUsuario}</td>
+                        <td>${u.usuario}</td>
+                        <td>${u.nombre}</td>
+                        <td>${u.dirección || ''}</td>
+                        <td>${u.teléfono || ''}</td>
+                        <td>
+                            <button class="btn-warning" onclick="cargarEdicion(${u.idUsuario}, '${u.usuario}', '${u.clave}', '${u.nombre}', '${u.dirección || ''}', '${u.teléfono || ''}')">Editar</button>
+                            <button class="btn-danger" onclick="eliminarUsuario(${u.idUsuario})">Eliminar</button>
+                        </td>
+                    </tr>`;
+                });
+                document.getElementById('tablaUsuarios').innerHTML = html;
+            });
+        }
+
+        function cargarEdicion(id, usuario, clave, nombre, direccion, telefono) {
+            document.getElementById('idUsuario').value = id;
+            document.getElementById('usuario').value = usuario;
+            document.getElementById('clave').value = clave;
+            document.getElementById('nombre').value = nombre;
+            document.getElementById('direccion').value = direccion;
+            document.getElementById('telefono').value = telefono;
+        }
+
+        function eliminarUsuario(idUsuario) {
+            if (confirm('¿Está seguro de eliminar este usuario?')) {
+                fetch('/crud_usuarios_usss092825', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idUsuario, accion: 'eliminar' })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    alert(data.message);
+                    buscarUsuarios();
+                });
+            }
+        }
+
+        function limpiarFormulario() {
+            document.getElementById('idUsuario').value = '';
+            document.getElementById('usuario').value = '';
+            document.getElementById('clave').value = '';
+            document.getElementById('nombre').value = '';
+            document.getElementById('direccion').value = '';
+            document.getElementById('telefono').value = '';
+        }
+    </script>
+</body>
+</html>
